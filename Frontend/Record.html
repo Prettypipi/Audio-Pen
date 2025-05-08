@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Speech to Text</title>
+</head>
+<body>
+    <h1 style="text-align: center">Welcome to AudioPen application</h1>
+    <br>
+    <br>
+    <table width="100%">
+    <tr><td style="text-align:right"><button id="startBtn">Start Recording</button></td>
+    <td style="text-align:left"><button id="stopBtn" disabled>Stop Recording</button></td>
+    <tr></tr>
+    </table>
+    <br>
+    <br>
+    <table width="100%" style="border: 1px solid black;" >
+    <tr></tr>
+    <tr><td style="text-align:center;vertical-align:top" width="50%"><b>Audio transcription:</b><br><div id="output"></div></td>
+    <td style="text-align:center;vertical-align:top" width="50%"><b>Summary of transcription:</b><br><div id="summary"></div></tr></td>
+    </table>
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const output = document.getElementById('output');
+
+        // api for speech recognition
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        let transcript = '';
+        let fullTranscript = '';
+        recognition.continuous = true;
+        summary.textContent = "";
+
+        startBtn.onclick = () => {
+            fullTranscript = "";
+            //transcriptBox.value = "";
+            recognition.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+        };
+
+        stopBtn.onclick = () => {
+            recognition.stop();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+  
+     /*   recognition.onstart = () => {
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            output.textContent = 'Listening...';
+            transcript = ''; // Clear previous transcript
+        }; */
+
+      /*  recognition.onresult = (event) => {
+            const currentTranscript = Array.from(event.results)
+                .map(result => result[0].transcript)
+                .join('');
+
+            transcript = currentTranscript;
+            output.textContent = transcript;
+        };*/
+        recognition.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                fullTranscript += event.results[i][0].transcript + " ";
+            }
+            output.textContent = fullTranscript;
+            };
+        
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            output.textContent = 'Error occurred. Please try again.';
+            resetButtons();
+        };
+
+        recognition.onend = () => {
+           CallAPI();
+        };
+
+        function CallAPI() {
+            //alert(fullTranscript);
+            //summary.textContent = JSON.stringify({ transcript: fullTranscript });
+            let APIresponse = '';
+           summary.textContent ="";
+           fetch('https://audiopen.onrender.com/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transcript: fullTranscript })
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                   var jsonData = JSON.stringify(data);
+                   // APIresponse = jsonData.summary;
+                    //APIresponse = typeof(data);
+                    var parsedJson = JSON.parse(jsonData);
+                    summary.textContent += parsedJson["summary"];
+                })
+                /*.then(response => {
+                    summary.textContent += "Success";
+                })*/
+                .catch((err) => {
+                    summary.textContent += "Error:"
+                    summary.textContent +=  err;
+                    summary.textContent += "Failed to summarize.";
+             }); 
+            }
+    </script>
+</body>
+</html>
